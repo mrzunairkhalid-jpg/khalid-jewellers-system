@@ -1,1 +1,0 @@
-# khalid-jewellers-system
