@@ -1,1 +1,252 @@
-# khalid-jewellers-system
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Khalid Jewellers - Stock & Sales System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8f5ec;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+      direction: rtl; /* اردو کے لیے دائیں سے بائیں ترتیب */
+      text-align: right;
+    }
+    .container {
+      max-width: 1000px;
+      margin: auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .header h1 {
+      color: #b8860b;
+      font-size: 36px;
+      margin: 0;
+      text-transform: uppercase;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: #fff;
+      border: 2px solid #c9a227;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    h2 {
+      color: #b8860b;
+      border-bottom: 2px solid #f8f5ec;
+      padding-bottom: 8px;
+      margin-top: 0;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #c9a227;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 15px;
+      text-align: right;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #c9a227;
+      color: #fff;
+      border: 0;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover { background: #b8860b; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      border: 1px solid #c9a227;
+      padding: 10px;
+      text-align: right;
+    }
+    th { background: #fdfbe7; color: #b8860b; }
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      font-weight: bold;
+      color: #333;
+      direction: ltr;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>Khalid Jewellers</h1>
+    <p style="color: #666; margin: 5px 0 0 0;">Stock & Sales Management System</p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>1. ایڈ اسٹاک (Add New Stock)</h2>
+      <input type="text" id="itemName" placeholder="آئٹم کا نام (جیسے: سونے کی چین)">
+      <input type="text" id="itemNo" placeholder="آئٹم نمبر / کوڈ (جیسے: KJ-001)">
+      <input type="text" id="itemWeight" placeholder="وزن (تولہ/ماشہ یا گرام)">
+      <button onclick="addStock()">اسٹاک میں شامل کریں</button>
+
+      <h3 style="margin-top:25px; color:#b8860b;">موجودہ اسٹاک (Available Stock)</h3>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>آئٹم نمبر</th>
+              <th>نام</th>
+              <th>وزن</th>
+            </tr>
+          </thead>
+          <tbody id="stockTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2. سیلز فارم (Sell Item)</h2>
+      <input type="text" id="sellItemNo" placeholder="آئٹم نمبر درج کریں (جو سیل کرنی ہے)">
+      <input type="text" id="custName" placeholder="کسٹمر کا نام">
+      <input type="date" id="sellDate" style="text-align: center;">
+      <textarea id="sellDesc" placeholder="تفصیل یا ڈسکرپشن (مثلاً ریٹ، مینڈنگ چارجز وغیرہ)" rows="3"></textarea>
+      <button onclick="sellItem()" style="background: #27a3c9;">سیل ریکارڈ کریں</button>
+
+      <h3 style="margin-top:25px; color:#27a3c9;">روزانہ کی سیلز (Sales Report)</h3>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>تاریخ</th>
+              <th>آئٹم نمبر</th>
+              <th>کسٹمر</th>
+              <th>وزن</th>
+              <th>تفصیل</th>
+            </tr>
+          </thead>
+          <tbody id="salesTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Created by Zunair Khalid
+  </div>
+</div>
+
+<script>
+  // لوڈ ڈیٹا جب سافٹ ویئر اوپن ہو
+  let stock = JSON.parse(localStorage.getItem('kj_stock')) || [];
+  let sales = JSON.parse(localStorage.getItem('kj_sales')) || [];
+
+  // تاریخ کو آج کی ڈیٹ پر سیٹ کرنا
+  document.getElementById('sellDate').valueAsDate = new Date();
+
+  function saveAndRender() {
+    localStorage.setItem('kj_stock', JSON.stringify(stock));
+    localStorage.setItem('kj_sales', JSON.stringify(sales));
+    renderTables();
+  }
+
+  function addStock() {
+    let name = document.getElementById('itemName').value.trim();
+    let no = document.getElementById('itemNo').value.trim();
+    let weight = document.getElementById('itemWeight').value.trim();
+
+    if(!name || !no || !weight) { alert('برائے مہربانی تمام خانے پُر کریں!'); return; }
+    
+    // چیک کریں کہ یہ نمبر پہلے سے تو نہیں ہے
+    if(stock.some(item => item.no === no)) { alert('یہ آئٹم نمبر پہلے سے موجود ہے!'); return; }
+
+    stock.push({ name, no, weight });
+    
+    // فارم خالی کرنا
+    document.getElementById('itemName').value = '';
+    document.getElementById('itemNo').value = '';
+    document.getElementById('itemWeight').value = '';
+    
+    saveAndRender();
+  }
+
+  function sellItem() {
+    let no = document.getElementById('sellItemNo').value.trim();
+    let customer = document.getElementById('custName').value.trim();
+    let date = document.getElementById('sellDate').value;
+    let desc = document.getElementById('sellDesc').value.trim();
+
+    if(!no || !customer || !date) { alert('برائے مہربانی آئٹم نمبر، کسٹمر کا نام اور تاریخ لازمی لکھیں!'); return; }
+
+    // اسٹاک میں آئٹم ڈھونڈیں
+    let itemIndex = stock.findIndex(item => item.no === no);
+
+    if(itemIndex === -1) {
+      alert('یہ آئٹم نمبر اسٹاک میں موجود نہیں ہے یا پہلے ہی فروخت ہو چکا ہے!');
+      return;
+    }
+
+    let soldItem = stock[itemIndex];
+
+    // سیلز میں ڈیٹا ڈالنا
+    sales.push({
+      date,
+      no: soldItem.no,
+      name: soldItem.name,
+      customer,
+      weight: soldItem.weight,
+      desc
+    });
+
+    // اسٹاک سے نکالنا
+    stock.splice(itemIndex, 1);
+
+    // فارم خالی کرنا
+    document.getElementById('sellItemNo').value = '';
+    document.getElementById('custName').value = '';
+    document.getElementById('sellDesc').value = '';
+
+    saveAndRender();
+  }
+
+  function renderTables() {
+    // اسٹاک ٹیبل رینڈر کرنا
+    let stockHTML = '';
+    stock.forEach(item => {
+      stockHTML += `<tr><td><b>${item.no}</b></td><td>${item.name}</td><td>${item.weight}</td></tr>`;
+    });
+    document.getElementById('stockTable').innerHTML = stockHTML;
+
+    // سیلز ٹیبل رینڈر کرنا
+    let salesHTML = '';
+    sales.reverse(); // نئی سیل سب سے اوپر دیکھنے کے لیے
+    sales.forEach(sale => {
+      salesHTML += `<tr><td>${sale.date}</td><td><b>${sale.no}</b></td><td>${sale.customer}</td><td>${sale.weight}</td><td>${sale.desc}</td></tr>`;
+    });
+    sales.reverse(); // واپس ترتیب درست کرنے کے لیے
+    document.getElementById('salesTable').innerHTML = salesHTML;
+  }
+
+  // پہلی بار ٹیبل دکھانے کے لیے
+  renderTables();
+</script>
+
+</body>
+</html>
